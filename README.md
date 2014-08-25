@@ -43,7 +43,7 @@ Creates a new Virtual Machine on a VMWare ESXi Host based on a template.
   -p, --password    Password for the created user
   -H, --hostname    Set hostname
   -s, --size        Resizes main disk to n MB
-  -x, --size_aux    Password for the created user
+  -x, --size_aux    Creates another disk and attaches it
   -P, --path        Path in ESXi Host to store VM files (defaults to /vmfs/volumes/datastore1)
   -I, --image       Path to a template image (defaults to /vmfs/volumes/datastore1/template.tar.gz)
   -i, --ip          IP address for the new VM
