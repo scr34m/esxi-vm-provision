@@ -159,10 +159,10 @@ fi
 echo "The new vmid on ESXi is $VM_ID "
 vim-cmd vmsvc/power.on $VM_ID
 
-# Wait until Wmware Guest Tools reports itself as ready and updates the ip address
+# Wait until Wmware Guest Tools reports itself as ready
 wait_to_boot(){
 
-	echo "Waiting for VM to boot"
+	echo -n "Waiting for VM to boot"
     sleep 2
     guest_ok=1
     timeout=0
@@ -178,20 +178,35 @@ wait_to_boot(){
 		sleep 1
 	done
 
-	echo ""
-	echo "got response."
-	vm_ip=$( vim-cmd vmsvc/get.guest $VM_ID |grep -m 1 "ipAddress = \"" | sed "s/.*ipAddress = \"\(.*\..*\..*\..*\)\".*/\1/g" )
+	echo "done"
+
+}
+
+wait_for_ip(){
+
+	echo -n "Waiting for IP to connect"
+
+	vm_ip=""
+    timeout=0
+	while [[ -z "$vm_ip" ]]; do
+		echo -n "."
+		vm_ip=$( vim-cmd vmsvc/get.guest $VM_ID |grep -m 1 "ipAddress = \"" | sed "s/.*ipAddress = \"\(.*\..*\..*\..*\)\".*/\1/g" )
+		timeout=$((timeout+1))
+		if [[ $timeout = 60 ]]; then
+			echo "There was a problem getting virtual machine IP address within 60 seconds."
+			exit 1
+		fi
+		sleep 1
+	done
+
+	echo "done"
+	echo "Current VM IP is: $vm_ip"
 
 }
 
 wait_to_boot
 
-if [[ ! -z "$vm_ip" ]]; then
-	echo "Current VM IP is: $vm_ip"
-else
-	echo "There was a problem starting the virtual machine, no VM ID was located."
-	exit 1
-fi
+wait_for_ip
 
 # In ESXi 5.5 the internal firewall blocks outgoing ssh connections
 # This command allows it so we can connect to the newly created VM
@@ -313,7 +328,7 @@ w
 	
 	# Restarts to update partition table
 	echo "rebooting."
-    ssh_vm reboot
+    ssh_vm /sbin/reboot
 
     # Waits for a reboot
     wait_to_boot
@@ -368,11 +383,12 @@ iface eth0 inet static
     echo "New machine IP will be set as $VM_IP and machine will reboot NOW"
     
     # Restarts to use new ip address
-    ssh_vm reboot
+    ssh_vm /sbin/reboot
 
     # Wait for boot again
     wait_to_boot
 
+	wait_for_ip
 fi
 
 rm /tmp/template-rsa-private-key
